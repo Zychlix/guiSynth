@@ -9,5 +9,5 @@ set(CMAKE_C_COMPILER gcc)
 
 
 
-add_executable(projekt main.c)
+add_executable(projekt main.c synthesis.c synthesis.h)
 target_link_libraries(projekt winmm.lib)

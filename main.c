@@ -23,6 +23,7 @@ typedef struct indicator_state_struct
 
     UINT device_count;
     HWND h_device_counter;
+
 } application_instance_t;
 
 typedef struct midi_device
@@ -45,11 +46,11 @@ typedef struct midi_data
 application_instance_t application;
 midi_device_t keyboard;
 
-void indicator_update(application_instance_t * instance);
+void gui_indicator_update(application_instance_t * instance);
 
-INT register_class_instance(HINSTANCE hinstance, INT cmdshow);
+INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow);
 
-void create_window_layout(application_instance_t *instance);
+void gui_create_window_layout(application_instance_t *instance);
 
 void midi_connect(midi_device_t * device);
 
@@ -59,7 +60,7 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2);
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 
-    register_class_instance(hInstance,nCmdShow);
+    gui_register_class_instance(hInstance, nCmdShow);
 
 
     application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "Window", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
@@ -69,7 +70,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    create_window_layout( &application);
+    gui_create_window_layout(&application);
 
     keyboard.midi_callback = (void*)midi_callback;
     keyboard.dev_id = 0;
@@ -93,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 
-INT register_class_instance(HINSTANCE hinstance, INT cmdshow)
+INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow)
 {
     application.hi_main_window = hinstance;
     application.i_cmdshow = cmdshow;
@@ -128,7 +129,7 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_COMMAND:
             switch (wParam) {
                 case TESTBUTTON_ID:
-                    indicator_update(&application);
+                    gui_indicator_update(&application);
                     break;
                 default:
                     break;
@@ -149,7 +150,7 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 
-void create_window_layout(application_instance_t *instance)
+void gui_create_window_layout(application_instance_t *instance)
 {
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", "Test", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
@@ -157,12 +158,12 @@ void create_window_layout(application_instance_t *instance)
 }
 
 
-void indicator_update(application_instance_t *instance)
+void gui_indicator_update(application_instance_t *instance)
 {
-    instance->device_count = midiInGetNumDevs();
+    //instance->device_count = midiInGetNumDevs();
     DestroyWindow(instance->h_device_counter);
     char buffer[64];
-    sprintf(buffer, "liczba %d", instance->device_count);
+    sprintf(buffer, "note index: %d", instance->device_count);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", buffer, WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
 
     ShowWindow(instance->h_main_window, instance->i_cmdshow);
@@ -181,6 +182,8 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
         case MIM_DATA:
             printf("wMsg=MIM_DATA, dwInstance=%08x, dwParam1=%08x, dwParam2=%08x\n", dwInstance, dwParam1, dwParam2);
             midi_data_t data = midi_data_pack(dwInstance,dwParam1,dwParam2);
+            application.device_count = data.note;
+            gui_indicator_update(&application);
             printf("status: %d note %d velocity %d \n", data.status, data.note, data.velocity);
             break;
         case MIM_LONGDATA:
@@ -222,5 +225,6 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2)
     data.status = param1;                   //As x86 is little endian, the first byte is the LSB - midi status byte
     data.note = *(((uint8_t*)&param1)+1);   //The second byte of the variable. midi note pressed
     data.velocity = *(((uint8_t*)&param1)+2); // midi velocity
+
     return data;
 }
