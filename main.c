@@ -28,7 +28,8 @@ typedef struct indicator_state_struct
     UINT device_count;
 
     HWND h_device_counter;
-    HWND h_volume_slider
+    HWND h_volume_slider;
+    SCROLLINFO s_volume_slider;
 } application_instance_t;
 
 typedef struct midi_device
@@ -145,10 +146,30 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
+
         case WM_VSCROLL:
-            case VOLUME_SLIDER_ID:
-                printf("%d",GetScrollPos(application.h_volume_slider,SB_VERT));
-                break;
+
+            if((HWND)lParam == application.h_volume_slider) {       //our lovely volume controll handle
+
+                SCROLLINFO si;
+                ZeroMemory( & si, sizeof( si ) );
+
+                //application.s_volume_slider.nPos = application.s_volume_slider.nTrackPos;
+                si.cbSize = sizeof si;
+                si.fMask = SIF_POS|SIF_PAGE | SIF_TRACKPOS;
+                GetScrollInfo (application.h_volume_slider, SB_CTL, &si);
+                int pos =si.nPos;
+                si.nPos = si.nTrackPos;
+                SetScrollInfo(application.h_volume_slider,SB_CTL, &si,1);
+                printf("%d \n", pos);
+            }
+
+
+
+
+
+
+            break;
         case WM_COMMAND:
             switch (wParam) {
                 case CONNECT_BUTTON_ID:
@@ -182,7 +203,18 @@ void gui_create_window_layout(application_instance_t *instance)
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", "Test", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     CreateWindowEx(0, "BUTTON", "Connect", WS_CHILD | WS_VISIBLE, 0, 20, 70, 30, instance->h_main_window, (HMENU) CONNECT_BUTTON_ID, instance->hi_main_window, NULL );
-    instance->h_volume_slider = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|WS_VSCROLL, 150,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
+    instance->h_volume_slider = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|SBS_VERT, 150,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
+
+    application.s_volume_slider.cbSize = sizeof application.s_volume_slider;
+    application.s_volume_slider.fMask = SIF_ALL;
+    application.s_volume_slider.nMin = 5;
+    application.s_volume_slider.nMax = 1000;
+    application.s_volume_slider.nPage = 100;
+    application.s_volume_slider.nPos = 500;
+    SetScrollInfo (application.h_volume_slider, SB_CTL, &application.s_volume_slider, TRUE);
+
+
+
 }
 
 
@@ -192,7 +224,7 @@ void gui_indicator_update(application_instance_t *instance)
     DestroyWindow(instance->h_device_counter);
     char buffer[64];
     sprintf(buffer, "note index: %d", instance->device_count);
-    instance->h_device_counter=CreateWindowEx(0, "STATIC", buffer, WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+    instance->h_device_counter=CreateWindowEx(0, "STATIC", buffer, WS_CHILD | WS_VISIBLE, 0 , 100 , 50, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
 
     ShowWindow(instance->h_main_window, instance->i_cmdshow);
     UpdateWindow(instance->h_main_window);
