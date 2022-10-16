@@ -64,12 +64,13 @@ int pa_callback(const void * input,
     {
         data_point = data->current_phase;
 
-        syn_stereo_data_output(&out_stream, &data_point);
 
         syn_voice_generate(synth_instance);
 
         syn_envelope_processor(synth_instance);
 
+
+        syn_stereo_data_output(&out_stream, &data_point);
         //synth_instance->voice_main.volume *=0.99999f;
 
         data->time_stage++;
@@ -84,7 +85,8 @@ void syn_voice_generate(synthesizer_t * synthesizer)
     float volume = synthesizer->voice_main.volume;
     int time_stage = synthesizer->data.time_stage;
     float signal;
-    signal = volume * sin(frequency*time_stage*2*M_PI/SAMPLE_RATE);
+    float master = synthesizer->voice_main.master_volume;
+    signal = master * volume * sin(frequency*time_stage*2*M_PI/SAMPLE_RATE);
     synthesizer->data.current_phase.left = (1- synthesizer->data.pan)/2 * signal;
     synthesizer->data.current_phase.right = (1+ synthesizer->data.pan)/2 * signal;
 }
@@ -94,7 +96,7 @@ void syn_envelope_processor(synthesizer_t * synthesizer)
 {
     if(synthesizer->data.notes_pressed)
     {
-        synthesizer->voice_main.volume*=(1+synthesizer->voice_main.attack/SAMPLE_RATE);
+        synthesizer->voice_main.volume+=(1-synthesizer->voice_main.volume)/SAMPLE_RATE;
     }
     else
     {

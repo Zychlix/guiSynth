@@ -31,6 +31,7 @@ typedef struct user_data
 typedef struct voice
 {
     float volume;
+    float master_volume;
     int note;
     int note_on;
     int stage;

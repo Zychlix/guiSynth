@@ -10,6 +10,11 @@
 #define CONNECT_BUTTON_ID 211
 #define VOLUME_SLIDER_ID  212
 
+#define MIDI_KEY_PRESSED 144
+#define MIDI_KEY_DEPRESSED 128
+
+#define GUI_VOLUME_X_POS 350
+
 MSG message; //message queue
 
 LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );  //Window event callback function
@@ -69,15 +74,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     gui_register_class_instance(hInstance, nCmdShow);
 
 
-    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "Window", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
+    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "SimpleSynth v0.1", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
 
     if(!application.h_main_window)
     {
         return -1;
     }
 
+
+
     synth.data.pan = 0;
-    synth.voice_main.volume= 1.f;
+    synth.voice_main.master_volume= 1.f;
+    synth.voice_main.volume = 1.f;
 
     synth.voice_main.attack = 100;
     synth.voice_main.decay = 10;
@@ -120,6 +128,7 @@ INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow)
     application.i_cmdshow = cmdshow;
 
     memcpy(application.wnd_class_name,"wndClass",sizeof "wndClass");
+
     WNDCLASSEX wnd_class_instance;
 
     wnd_class_instance.hInstance =  application.hi_main_window;
@@ -140,6 +149,7 @@ INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow)
     {
         return -1;
     }
+    return 0;
 }
 
 LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -161,11 +171,9 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 int pos =si.nPos;
                 si.nPos = si.nTrackPos;
                 SetScrollInfo(application.h_volume_slider,SB_CTL, &si,1);
+                synth.voice_main.master_volume= (exp((1-(pos/1000.f)))-1)/1.71;
                 printf("%d \n", pos);
             }
-
-
-
 
 
 
@@ -174,6 +182,7 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             switch (wParam) {
                 case CONNECT_BUTTON_ID:
                     midi_connect(&keyboard);
+                    gui_indicator_update(&application);
                     //gui_indicator_update(&application);
                     break;
 
@@ -201,16 +210,18 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 void gui_create_window_layout(application_instance_t *instance)
 {
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
-    instance->h_device_counter=CreateWindowEx(0, "STATIC", "Test", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+    instance->h_device_counter=CreateWindowEx(0, "STATIC", "Device not connected", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     CreateWindowEx(0, "BUTTON", "Connect", WS_CHILD | WS_VISIBLE, 0, 20, 70, 30, instance->h_main_window, (HMENU) CONNECT_BUTTON_ID, instance->hi_main_window, NULL );
-    instance->h_volume_slider = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|SBS_VERT, 150,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
+
+    instance->h_volume_slider = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|SBS_VERT, GUI_VOLUME_X_POS,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
+    CreateWindowEx(0, "STATIC", "Volume", WS_CHILD| WS_VISIBLE, GUI_VOLUME_X_POS , 0 , 20, 20, instance->h_main_window, NULL, instance->hi_main_window, NULL);
 
     application.s_volume_slider.cbSize = sizeof application.s_volume_slider;
     application.s_volume_slider.fMask = SIF_ALL;
-    application.s_volume_slider.nMin = 5;
+    application.s_volume_slider.nMin = 0;
     application.s_volume_slider.nMax = 1000;
     application.s_volume_slider.nPage = 100;
-    application.s_volume_slider.nPos = 500;
+    application.s_volume_slider.nPos = 0;
     SetScrollInfo (application.h_volume_slider, SB_CTL, &application.s_volume_slider, TRUE);
 
 
@@ -223,8 +234,8 @@ void gui_indicator_update(application_instance_t *instance)
     //instance->device_count = midiInGetNumDevs();
     DestroyWindow(instance->h_device_counter);
     char buffer[64];
-    sprintf(buffer, "note index: %d", instance->device_count);
-    instance->h_device_counter=CreateWindowEx(0, "STATIC", buffer, WS_CHILD | WS_VISIBLE, 0 , 100 , 50, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+    sprintf(buffer, "Device connected", instance->device_count);
+    instance->h_device_counter=CreateWindowEx(0, "STATIC", buffer, WS_CHILD | WS_VISIBLE, 0 , 100 , 100, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
 
     ShowWindow(instance->h_main_window, instance->i_cmdshow);
     UpdateWindow(instance->h_main_window);
@@ -243,16 +254,15 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
             printf("wMsg=MIM_DATA, dwInstance=%08x, dwParam1=%08x, dwParam2=%08x\n", dwInstance, dwParam1, dwParam2);
             midi_data_t data = midi_data_pack(dwInstance,dwParam1,dwParam2);
             application.device_count = data.note;
-            gui_indicator_update(&application);
+
             printf("status: %d note %d velocity %d \n", data.status, data.note, data.velocity);
 
-
-            if(data.status == 144)
+            if(data.status == MIDI_KEY_PRESSED)
             {
                 syn_set_note(&synth,data.note);
                 syn_play_note(&synth);
             }
-            if(data.status == 128)
+            if(data.status == MIDI_KEY_DEPRESSED)
             {
                 syn_stop_note(&synth);
             }
