@@ -73,8 +73,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    synth.data.frequency = 440;
-
+    synth.data.frequency = syn_midi_note_to_freq(60);
+    printf("%f",synth.data.frequency);
+    synth.data.pan = 0;
+    synth.voice_main.volume= 1.f;
 
 
 
