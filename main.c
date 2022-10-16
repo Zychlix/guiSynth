@@ -2,6 +2,9 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "synthesis.h"
+
+
 
 
 #define TESTBUTTON_ID 211
@@ -45,6 +48,7 @@ typedef struct midi_data
 
 application_instance_t application;
 midi_device_t keyboard;
+synthesizer_t synth;
 
 void gui_indicator_update(application_instance_t * instance);
 
@@ -59,7 +63,6 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-
     gui_register_class_instance(hInstance, nCmdShow);
 
 
@@ -69,6 +72,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     {
         return -1;
     }
+
+    synth.data.frequency = 440;
+
+
+
+
 
     gui_create_window_layout(&application);
 
@@ -83,6 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UpdateWindow(application.h_main_window);
 
   //  application.device_count = midiInGetNumDevs();
+  //
 
     while(GetMessage(&message,NULL,0,0))
     {
@@ -90,7 +100,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         DispatchMessage(&message);
     }
 
-    return 0;
+    return message.wParam;
 }
 
 
@@ -129,7 +139,8 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_COMMAND:
             switch (wParam) {
                 case TESTBUTTON_ID:
-                    gui_indicator_update(&application);
+                    syn_initialize(&synth);
+                    //gui_indicator_update(&application);
                     break;
                 default:
                     break;
@@ -137,6 +148,8 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             break;
         case WM_DESTROY:
             PostQuitMessage( 0 );
+            Pa_Sleep(1000);
+            syn_deinitialize(&synth);
             break;
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -228,3 +241,4 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2)
 
     return data;
 }
+
