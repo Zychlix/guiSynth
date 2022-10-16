@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include <stdint.h>
 
+
 #define SAMPLE_RATE 44100
 #define FRAMES_PER_BUFFER 256
 
@@ -20,8 +21,8 @@ typedef struct stereo
 
 typedef struct user_data
 {
+    unsigned int notes_pressed;
     stereo_value_t current_phase; //As amplitude
-    float frequency;
     uint64_t time_stage;
     float pan;
 
@@ -32,11 +33,13 @@ typedef struct voice
     float volume;
     int note;
     int note_on;
+    int stage;
 
     float attack;
     float decay;
     float sustain;
     float release;
+    float frequency;
 
 } voice_t;
 

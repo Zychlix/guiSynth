@@ -1,5 +1,5 @@
 #include "synthesis.h"
-
+#include "misc.h"
 
 int syn_initialize(synthesizer_t * synthesizer)
 {
@@ -68,7 +68,9 @@ int pa_callback(const void * input,
 
         syn_voice_generate(synth_instance);
 
-        synth_instance->voice_main.volume *=0.99999f;
+        syn_envelope_processor(synth_instance);
+
+        //synth_instance->voice_main.volume *=0.99999f;
 
         data->time_stage++;
     }
@@ -78,7 +80,7 @@ int pa_callback(const void * input,
 }
 void syn_voice_generate(synthesizer_t * synthesizer)
 {
-    double frequency = (double)synthesizer->data.frequency;
+    double frequency = (double)synthesizer->voice_main.frequency;
     float volume = synthesizer->voice_main.volume;
     int time_stage = synthesizer->data.time_stage;
     float signal;
@@ -86,6 +88,21 @@ void syn_voice_generate(synthesizer_t * synthesizer)
     synthesizer->data.current_phase.left = (1- synthesizer->data.pan)/2 * signal;
     synthesizer->data.current_phase.right = (1+ synthesizer->data.pan)/2 * signal;
 }
+
+
+void syn_envelope_processor(synthesizer_t * synthesizer)
+{
+    if(synthesizer->data.notes_pressed)
+    {
+        synthesizer->voice_main.volume*=(1+synthesizer->voice_main.attack/SAMPLE_RATE);
+    }
+    else
+    {
+        synthesizer->voice_main.volume*=(1-synthesizer->voice_main.release/SAMPLE_RATE);
+    }
+    synthesizer->voice_main.volume= f_sym_constraint(synthesizer->voice_main.volume,1);
+}
+
 
 void syn_voice_process(synthesizer_t * synthesizer)     //add voice processing. remembera about the update func
 {
@@ -100,13 +117,15 @@ float syn_midi_note_to_freq(unsigned int note)
 
 void syn_play_note(synthesizer_t * synthesizer)
 {
-    synthesizer->voice_main.volume = 1.0f;
-    synthesizer->data.frequency = syn_midi_note_to_freq(synthesizer->voice_main.note);
+    //synthesizer->voice_main.volume = 1.0f;
+    synthesizer->voice_main.frequency = syn_midi_note_to_freq(synthesizer->voice_main.note);
     synthesizer->voice_main.note_on = 1;
+    synthesizer->data.notes_pressed++;
 }
 void syn_stop_note(synthesizer_t * synthesizer)
 {
     synthesizer->voice_main.note_on = 0;
+    synthesizer->data.notes_pressed--;
 }
 
 

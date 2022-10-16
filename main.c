@@ -7,7 +7,8 @@
 
 
 
-#define TESTBUTTON_ID 211
+#define CONNECT_BUTTON_ID 211
+#define VOLUME_SLIDER_ID  212
 
 MSG message; //message queue
 
@@ -25,8 +26,9 @@ typedef struct indicator_state_struct
     LPSTR wnd_class_name[64];
 
     UINT device_count;
-    HWND h_device_counter;
 
+    HWND h_device_counter;
+    HWND h_volume_slider
 } application_instance_t;
 
 typedef struct midi_device
@@ -73,10 +75,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    synth.data.frequency = syn_midi_note_to_freq(60);
-    printf("%f",synth.data.frequency);
     synth.data.pan = 0;
     synth.voice_main.volume= 1.f;
+
+    synth.voice_main.attack = 100;
+    synth.voice_main.decay = 10;
+    synth.voice_main.sustain = 0.8;
+    synth.voice_main.release = 10;
+
+    syn_initialize(&synth);
 
 
 
@@ -85,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     keyboard.midi_callback = (void*)midi_callback;
     keyboard.dev_id = 0;
-    midi_connect(&keyboard);
+
 //    if(res== MMSYSERR_NOERROR)
 //    {
 //        MessageBox(NULL,"Dziala cos","  ",0);
@@ -138,12 +145,17 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
+        case WM_VSCROLL:
+            case VOLUME_SLIDER_ID:
+                printf("%d",GetScrollPos(application.h_volume_slider,SB_VERT));
+                break;
         case WM_COMMAND:
             switch (wParam) {
-                case TESTBUTTON_ID:
-                    syn_initialize(&synth);
+                case CONNECT_BUTTON_ID:
+                    midi_connect(&keyboard);
                     //gui_indicator_update(&application);
                     break;
+
                 default:
                     break;
             }
@@ -169,7 +181,8 @@ void gui_create_window_layout(application_instance_t *instance)
 {
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", "Test", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
-     CreateWindowEx(0, "BUTTON", "Test", WS_CHILD | WS_VISIBLE, 100, 100, 150, 30, instance->h_main_window, (HMENU) TESTBUTTON_ID, instance->hi_main_window, NULL );
+    CreateWindowEx(0, "BUTTON", "Connect", WS_CHILD | WS_VISIBLE, 0, 20, 70, 30, instance->h_main_window, (HMENU) CONNECT_BUTTON_ID, instance->hi_main_window, NULL );
+    instance->h_volume_slider = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|WS_VSCROLL, 150,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
 }
 
 
@@ -200,6 +213,17 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
             application.device_count = data.note;
             gui_indicator_update(&application);
             printf("status: %d note %d velocity %d \n", data.status, data.note, data.velocity);
+
+
+            if(data.status == 144)
+            {
+                syn_set_note(&synth,data.note);
+                syn_play_note(&synth);
+            }
+            if(data.status == 128)
+            {
+                syn_stop_note(&synth);
+            }
             break;
         case MIM_LONGDATA:
             printf("wMsg=MIM_LONGDATA\n");
