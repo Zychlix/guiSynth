@@ -6,15 +6,13 @@
 #include "gui.h"
 
 
-application_instance_t application;
+
 
 
 MSG message; //message queue
 
 
 void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
-
-
 
 
 typedef struct midi_device
@@ -37,10 +35,7 @@ typedef struct midi_data
 
 midi_device_t keyboard;
 synthesizer_t synth;
-
-
-
-
+gui_application_instance_t application;
 
 
 
@@ -94,7 +89,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
   //  application.device_count = midiInGetNumDevs();
   //
-    gui_draw_keyboard(application.h_main_window,10,10);
+    gui_draw_keyboard(application.h_main_window,100,100);
     while(GetMessage(&message,NULL,0,0))
     {
         TranslateMessage(&message);

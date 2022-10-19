@@ -1,24 +1,9 @@
 #include "gui.h"
 
-extern application_instance_t application;
+extern gui_application_instance_t application;
 
-void gui_draw_keyboard(HWND window, unsigned  int x, unsigned int y)
-{
-    HDC context;
-    context = GetDC(window);
 
-    POINT pos;
-    MoveToEx(context, x, y, &pos);
-    HPEN pen;
-    pen = CreatePen(PS_SOLID,1,0x00FF00);
-    SelectObject(context,pen);
-    LineTo(context,200,200);
-
-    ReleaseDC(window, context);
-    return;
-}
-
-void gui_create_window_layout(application_instance_t *instance)
+void gui_create_window_layout(gui_application_instance_t *instance)
 {
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", "Device not connected", WS_CHILD | WS_VISIBLE, 0 , 100 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
@@ -40,7 +25,7 @@ void gui_create_window_layout(application_instance_t *instance)
 }
 
 
-void gui_indicator_update(application_instance_t *instance)
+void gui_indicator_update(gui_application_instance_t *instance)
 {
     //instance->device_count = midiInGetNumDevs();
     DestroyWindow(instance->h_device_counter);
@@ -82,3 +67,61 @@ INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow, WNDPROC * call
     return 0;
 }
 
+void gui_draw_keyboard(HWND window, unsigned  int x, unsigned int y)
+{
+    HDC context;
+    context = GetDC(window);
+    POINT note_pos;
+    note_pos.x = x;
+    note_pos.y = y;
+    int chromatic_note_counter = 0;
+    for(int i = 0; i<12 ; i++)
+    {
+        int current_index = i%12;
+        if(current_index == 2 || current_index == 4 || current_index == 7 || current_index == 9 || current_index == 11)
+        {
+            gui_draw_chromatic_note(context, note_pos,1);
+        } else {
+            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
+            gui_draw_chromatic_note(context, note_pos, 0);
+        }
+    }
+
+    ReleaseDC(window, context);
+    return;
+}
+
+
+void gui_draw_chromatic_note(HDC context, POINT p, int type)
+{
+    POINT current_loc;
+
+    POINT pos;
+    MoveToEx(context, p.x, p.y, &pos);
+    HPEN pen;
+    pen = CreatePen(PS_SOLID,1,GUI_COLOR_BLACK);
+    SelectObject(context,pen);
+    POINT upper_left;
+    POINT lower_right;
+
+    upper_left.x = p.x;
+    upper_left.y = p.y;
+    if(type == 0) {
+        lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH;
+        lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT;
+    } else
+    {
+        lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH/3;
+        lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT/2 -50;
+    }
+    LineTo(context,upper_left.x,upper_left.y);
+    LineTo(context, upper_left.x, lower_right.y);
+    LineTo(context, lower_right.x, lower_right.y);
+    LineTo(context, lower_right.x, upper_left.y);
+    LineTo(context, upper_left.x,upper_left.y);
+}
+
+void gui_draw_sharp_note(HDC context, POINT p)
+{
+
+}
