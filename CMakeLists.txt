@@ -9,6 +9,6 @@ add_subdirectory(portaudio)
 
 
 
-add_executable(projekt main.c synthesis.c synthesis.h misc.h)
+add_executable(projekt main.c synthesis.c synthesis.h misc.h gui.h gui.c)
 target_link_libraries(projekt PUBLIC portaudio_static winmm.lib  )
 
