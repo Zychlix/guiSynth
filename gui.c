@@ -75,18 +75,35 @@ void gui_draw_keyboard(HWND window, unsigned  int x, unsigned int y)
     note_pos.x = x;
     note_pos.y = y;
     int chromatic_note_counter = 0;
-    for(int i = 0; i<12 ; i++)
+    for(int i = 0; i<20 ; i++)      //draw chromatic keys
+    {
+        int current_index = i%12;
+        if(current_index == 2 || current_index == 4 || current_index == 7 || current_index == 9 || current_index == 11)
+        {
+
+        } else {
+            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
+            gui_draw_chromatic_note(context, note_pos, 0);
+        }
+
+    }
+    note_pos.x = x; //reset the position
+    note_pos.y = y;
+
+    for(int i = 0; i<20 ; i++)      //draw flat keys
     {
         int current_index = i%12;
         if(current_index == 2 || current_index == 4 || current_index == 7 || current_index == 9 || current_index == 11)
         {
             gui_draw_chromatic_note(context, note_pos,1);
-        } else {
-            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
-            gui_draw_chromatic_note(context, note_pos, 0);
         }
-    }
+        else
+        {
+            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
+        }
 
+    }
+    //pamietaj o zwolnieniu zasobow rysunkowych
     ReleaseDC(window, context);
     return;
 }
@@ -99,8 +116,10 @@ void gui_draw_chromatic_note(HDC context, POINT p, int type)
     POINT pos;
     MoveToEx(context, p.x, p.y, &pos);
     HPEN pen;
+    HBRUSH brush = CreateSolidBrush(0x000000);
     pen = CreatePen(PS_SOLID,1,GUI_COLOR_BLACK);
     SelectObject(context,pen);
+
     POINT upper_left;
     POINT lower_right;
 
@@ -111,14 +130,17 @@ void gui_draw_chromatic_note(HDC context, POINT p, int type)
         lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT;
     } else
     {
-        lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH/3;
-        lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT/2 -50;
+        lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH/3+2;
+        lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT/2 -GUI_SHARP_Y_OFFSET;
+        SelectObject(context, brush);
     }
-    LineTo(context,upper_left.x,upper_left.y);
-    LineTo(context, upper_left.x, lower_right.y);
-    LineTo(context, lower_right.x, lower_right.y);
-    LineTo(context, lower_right.x, upper_left.y);
-    LineTo(context, upper_left.x,upper_left.y);
+
+//    LineTo(context, upper_left.x,upper_left.y);
+    Rectangle(context,upper_left.x,upper_left.y,lower_right.x, lower_right.y);
+    Rectangle(context, 0,0,100,100);
+
+    DeleteObject(pen);
+
 }
 
 void gui_draw_sharp_note(HDC context, POINT p)
