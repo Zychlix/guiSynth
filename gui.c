@@ -7,7 +7,7 @@ int flat_table[] = {0,1,0,1,0,0,1,0,1,0,1,0};
 
 void gui_create_window_layout(gui_application_instance_t *instance)
 {
-    CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 180 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+    CreateWindowEx(0, "STATIC", "Simple MIDI synth Zychla 2022", WS_CHILD| WS_VISIBLE, 180 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     instance->h_device_counter=CreateWindowEx(0, "STATIC", "Disconnected!", WS_CHILD | WS_VISIBLE, 25 , 50 , 100, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
     CreateWindowEx(0, "BUTTON", "Connect", WS_CHILD | WS_VISIBLE, 25, 20, 70, 30, instance->h_main_window, (HMENU) CONNECT_BUTTON_ID, instance->hi_main_window, NULL );
 
@@ -24,10 +24,10 @@ void gui_create_window_layout(gui_application_instance_t *instance)
     instance->controls.volume_slider.handle = gui_create_slider(&application,&application.controls.volume_slider.scroll,pos,"Vol");
     pos.x = 40;
     pos.y = GUI_ENVELOPE_Y_POS;
-    instance->controls.attack_slider.handle = gui_create_slider(&application,&application.controls.attack_slider.scroll,pos,"Attack");
-    pos.x = 90;
+    instance->controls.attack_slider.handle = gui_create_slider(&application,&application.controls.attack_slider.scroll,pos,"Atk");
+    pos.x = 80;
     pos.y = GUI_ENVELOPE_Y_POS;
-    instance->controls.decay_slider.handle = gui_create_slider(&application,&application.controls.decay_slider.scroll,pos,"Decay");
+    instance->controls.decay_slider.handle = gui_create_slider(&application,&application.controls.decay_slider.scroll,pos,"Dec");
 
 
 
@@ -138,7 +138,7 @@ void gui_draw_chromatic_note(HDC context, POINT p, note_type_t type, note_state_
 
     HPEN pen = CreatePen(PS_SOLID,1,GUI_COLOR_BLACK);
     HBRUSH brush_black = CreateSolidBrush(GUI_COLOR_BLACK);
-    HBRUSH brush_gray = CreateSolidBrush(0x808080);
+    HBRUSH brush_gray = CreateSolidBrush(GUI_COLOR_GRAY);
     HBRUSH brush_white = CreateSolidBrush(0xFFFFFF);
 
 
