@@ -86,7 +86,9 @@ void syn_voice_generate(synthesizer_t * synthesizer)
     int time_stage = synthesizer->data.time_stage;
     float signal;
     float master = synthesizer->voice_main.master_volume;
-    signal = master * volume * sin(frequency*time_stage*2*M_PI/SAMPLE_RATE);
+    float phase = synthesizer->voice_main.phase;
+//    signal = master * volume * sin(frequency*time_stage*2*M_PI/SAMPLE_RATE);
+    signal = master * volume * (sin((frequency*time_stage*2*M_PI+phase)/SAMPLE_RATE) );
     synthesizer->data.current_phase.left = (1- synthesizer->data.pan)/2 * signal;
     synthesizer->data.current_phase.right = (1+ synthesizer->data.pan)/2 * signal;
 }
@@ -96,11 +98,13 @@ void syn_envelope_processor(synthesizer_t * synthesizer)
 {
     if(synthesizer->data.notes_pressed)
     {
-        synthesizer->voice_main.volume+=(1-synthesizer->voice_main.volume)/SAMPLE_RATE;
+        synthesizer->voice_main.volume+=synthesizer->voice_main.attack*(1-synthesizer->voice_main.volume)/SAMPLE_RATE;
+
     }
     else
     {
         synthesizer->voice_main.volume*=(1-synthesizer->voice_main.release/SAMPLE_RATE);
+
     }
     synthesizer->voice_main.volume= f_sym_constraint(synthesizer->voice_main.volume,1);
 }
@@ -120,7 +124,9 @@ float syn_midi_note_to_freq(unsigned int note)
 void syn_play_note(synthesizer_t * synthesizer)
 {
     //synthesizer->voice_main.volume = 1.0f;
+    float old_freq = synthesizer->voice_main.frequency;
     synthesizer->voice_main.frequency = syn_midi_note_to_freq(synthesizer->voice_main.note);
+    synthesizer->voice_main.phase = synthesizer->voice_main.phase+(old_freq-synthesizer->voice_main.frequency)*synthesizer->data.time_stage;
     synthesizer->voice_main.note_on = 1;
     synthesizer->data.notes_pressed++;
 }

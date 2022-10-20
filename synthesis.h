@@ -6,7 +6,7 @@
 
 
 #define SAMPLE_RATE 44100
-#define FRAMES_PER_BUFFER 256
+#define FRAMES_PER_BUFFER 64
 
 /*
  * Michal Zychla 2022
@@ -41,6 +41,7 @@ typedef struct voice
     float sustain;
     float release;
     float frequency;
+    float phase;
 
 } voice_t;
 

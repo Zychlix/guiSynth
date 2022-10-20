@@ -12,6 +12,7 @@
 #define MIDI_KEY_DEPRESSED 128
 
 #define GUI_VOLUME_X_POS 350
+#define GUI_ENVELOPE_Y_POS 150
 
 #define GUI_COLOR_BLACK 0x000000
 
@@ -30,6 +31,20 @@ typedef enum note_state {
     NOTE_RELEASED
 } note_state_t;
 
+typedef struct potentiometer
+{
+    HWND handle;
+    SCROLLINFO scroll;
+} knob_t;
+
+typedef struct synth_controls
+{
+    knob_t volume_slider;
+    knob_t attack_slider;
+    knob_t decay_slider;
+
+}synth_controls_t;
+
 typedef struct indicator_state_struct
 {
     HWND h_main_window;
@@ -41,8 +56,8 @@ typedef struct indicator_state_struct
     UINT device_count;
 
     HWND h_device_counter;
-    HWND h_volume_slider;
-    SCROLLINFO s_volume_slider;
+
+    synth_controls_t controls;
 } gui_application_instance_t;
 
 typedef struct keyboard_state
@@ -63,4 +78,7 @@ void gui_create_window_layout(gui_application_instance_t *instance);
 
 INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow, WNDPROC * callback);
 
+HWND gui_create_slider(gui_application_instance_t *instance, SCROLLINFO* bar, POINT position, const LPCSTR * name);
 void gui_draw_chromatic_note(HDC context, POINT p, note_type_t type, note_state_t state);
+float gui_get_slider_value(knob_t * knob,HWND param);
+

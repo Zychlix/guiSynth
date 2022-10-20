@@ -15,6 +15,12 @@ MSG message; //message queue
 void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
 
 
+typedef struct midi_data
+{
+    uint8_t status;
+    uint8_t note;
+    uint8_t velocity;
+} midi_data_t;
 
 typedef struct midi_device
 {
@@ -25,12 +31,8 @@ typedef struct midi_device
 
 } midi_device_t;
 
-typedef struct midi_data
-{
-    uint8_t status;
-    uint8_t note;
-    uint8_t velocity;
-} midi_data_t;
+
+
 
 
 
@@ -40,19 +42,29 @@ synthesizer_t synth;
 gui_application_instance_t application;
 
 
-void keyboard_operator(keyboard_state_t * gui_keyboard, midi_data_t * note);
+void keyboard_operator(keyboard_state_t * gui_kbd, midi_data_t * note);
 
 INT midi_connect(midi_device_t * device);
 
 midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2);
 
+void slider_dispatcher(gui_application_instance_t * application,synthesizer_t * synth, HWND param);
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    gui_register_class_instance(hInstance, nCmdShow,wnd_callback);
+    gui_register_class_instance(hInstance, nCmdShow,(WNDPROC*)wnd_callback);
 
+    gui_keyboard.keyboard_size = 24;
 
-    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "DenaturiX Sound 2000", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
+    for (int i = 0; i < 24; ++i) {
+        gui_keyboard.notes[i] = NOTE_RELEASED;
+
+    }
+    gui_keyboard.origin.x = 0;
+    gui_keyboard.origin.y = 275;
+
+    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, (LPCSTR)application.wnd_class_name, "DenaturiX Sound 2000", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
 
     if(!application.h_main_window)
     {
@@ -66,18 +78,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     synth.voice_main.volume = 1.f;
 
     synth.voice_main.attack = 100;
-    synth.voice_main.decay = 10;
-    synth.voice_main.sustain = 0.8;
+    synth.voice_main.decay = 100;
+    synth.voice_main.sustain = 8;
     synth.voice_main.release = 10;
+    synth.voice_main.phase = 0;
 
     syn_initialize(&synth);
 
 
-    gui_keyboard.keyboard_size = 24;
-    for (int i = 0; i < 24; ++i) {
-        gui_keyboard.notes[i] = NOTE_RELEASED;
-
-    }
 
     gui_create_window_layout(&application);
 
@@ -88,10 +96,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ShowWindow(application.h_main_window, nCmdShow);
     UpdateWindow(application.h_main_window);
 
-  //  application.device_count = midiInGetNumDevs();
-  //
-    gui_keyboard.origin.x = 5;
-    gui_keyboard.origin.y = 270;
+    //  application.device_count = midiInGetNumDevs();
+    //
 
     gui_draw_keyboard(application.h_main_window,&gui_keyboard);
 
@@ -112,25 +118,13 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
         case WM_CREATE:
+            break;
 
 
         case WM_VSCROLL:
 
-            if((HWND)lParam == application.h_volume_slider) {       //our lovely volume controll handle
+            slider_dispatcher(&application,&synth,lParam);
 
-                SCROLLINFO si;
-                ZeroMemory( & si, sizeof( si ) );
-
-                //application.s_volume_slider.nPos = application.s_volume_slider.nTrackPos;
-                si.cbSize = sizeof si;
-                si.fMask = SIF_POS|SIF_PAGE | SIF_TRACKPOS;
-                GetScrollInfo (application.h_volume_slider, SB_CTL, &si);
-                int pos =si.nPos;
-                si.nPos = si.nTrackPos;
-                SetScrollInfo(application.h_volume_slider,SB_CTL, &si,1);
-                synth.voice_main.master_volume= (exp((1-(pos/1000.f)))-1)/1.71;
-                printf("%d \n", pos);
-            }
 
 
 
@@ -156,7 +150,9 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_CLOSE:
             DestroyWindow(hwnd);
             break;
-
+        case WM_SIZE:
+            gui_draw_keyboard(application.h_main_window,&gui_keyboard);
+            UpdateWindow(application.h_main_window);
         default:
             return DefWindowProc(hwnd,msg,wParam,lParam);
 
@@ -168,20 +164,19 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
+    midi_data_t data;
+
     switch(wMsg) {
         case MIM_OPEN:
             printf("wMsg=MIM_OPEN\n");
             break;
         case MIM_CLOSE:
+            MessageBox(NULL, "Device disconnected", "MIDI error", 0);
             printf("wMsg=MIM_CLOSE\n");
             break;
         case MIM_DATA:
-            printf("wMsg=MIM_DATA, dwInstance=%08x, dwParam1=%08x, dwParam2=%08x\n", dwInstance, dwParam1, dwParam2);
-            midi_data_t data = midi_data_pack(dwInstance,dwParam1,dwParam2);
+            data = midi_data_pack(dwInstance,dwParam1,dwParam2);
             application.device_count = data.note;
-
-            printf("status: %d note %d velocity %d \n", data.status, data.note, data.velocity);
-
             if(data.status == MIDI_KEY_PRESSED)
             {
                 syn_set_note(&synth,data.note);
@@ -198,7 +193,7 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
             printf("wMsg=MIM_LONGDATA\n");
             break;
         case MIM_ERROR:
-            MessageBox(NULL, "Device disconnected", "MIDI error", 0);
+
             printf("wMsg=MIM_ERROR\n");
             break;
         case MIM_LONGERROR:
@@ -241,18 +236,45 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2)
 }
 
 
-void keyboard_operator(keyboard_state_t * gui_keyboard, midi_data_t * note)
+void keyboard_operator(keyboard_state_t * gui_kbd, midi_data_t * note)
 {
     int note_offset = 48;
-    if(note->note>=48 & note->note <= 72)
+    if(note->note>=48 & note->note < 72)
     {
         if(note->status == MIDI_KEY_PRESSED)
         {
-            gui_keyboard->notes[note->note - note_offset] = NOTE_PRESSED;
+            gui_kbd->notes[note->note - note_offset] = NOTE_PRESSED;
         }
         if(note->status == MIDI_KEY_DEPRESSED)
         {
-            gui_keyboard->notes[note->note - note_offset] = NOTE_RELEASED;
+            gui_kbd->notes[note->note - note_offset] = NOTE_RELEASED;
         }
     }
 }
+
+void slider_dispatcher(gui_application_instance_t * application, synthesizer_t * synth, HWND param)
+{
+    float val ;
+
+    if(param == application->controls.volume_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.volume_slider,(HWND)param);
+        synth->voice_main.master_volume= (exp((val))-1)/1.71;
+
+    }
+    if(param == application->controls.attack_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.attack_slider,(HWND)param);
+    }
+    if(param == application->controls.decay_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.decay_slider,(HWND)param);
+    }
+
+
+
+
+    printf("%f \n", val);
+}
+
+
