@@ -3,6 +3,8 @@
 extern gui_application_instance_t application;
 
 
+int flat_table[] = {0,1,0,1,0,0,1,0,1,0,1,0};
+
 void gui_create_window_layout(gui_application_instance_t *instance)
 {
     CreateWindowEx(0, "STATIC", "Simple MIDI synth", WS_CHILD| WS_VISIBLE, 0 , 0 , 200, 30, instance->h_main_window, NULL, instance->hi_main_window, NULL);
@@ -67,39 +69,39 @@ INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow, WNDPROC * call
     return 0;
 }
 
-void gui_draw_keyboard(HWND window, unsigned  int x, unsigned int y)
+void gui_draw_keyboard(HWND window, keyboard_state_t * keyboard)
 {
     HDC context;
     context = GetDC(window);
-    POINT note_pos;
-    note_pos.x = x;
-    note_pos.y = y;
-    int chromatic_note_counter = 0;
-    for(int i = 0; i<20 ; i++)      //draw chromatic keys
+    POINT origin_point;
+    origin_point.x = keyboard->origin.x;
+    origin_point.y = keyboard->origin.y;
+
+    for(int i = 0; i<keyboard->keyboard_size ; i++)      //draw chromatic keys
     {
         int current_index = i%12;
-        if(current_index == 2 || current_index == 4 || current_index == 7 || current_index == 9 || current_index == 11)
+        if(flat_table[current_index])
         {
 
         } else {
-            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
-            gui_draw_chromatic_note(context, note_pos, 0);
+            origin_point.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
+            gui_draw_chromatic_note(context, origin_point, NOTE_CHROMATIC, keyboard->notes[i]);
         }
 
     }
-    note_pos.x = x; //reset the position
-    note_pos.y = y;
+    origin_point.x = keyboard->origin.x;
+    origin_point.y = keyboard->origin.y; //Reset origin position
 
-    for(int i = 0; i<20 ; i++)      //draw flat keys
+    for(int i = 0; i<keyboard->keyboard_size ; i++)      //draw flat keys
     {
         int current_index = i%12;
-        if(current_index == 2 || current_index == 4 || current_index == 7 || current_index == 9 || current_index == 11)
+        if(flat_table[current_index])
         {
-            gui_draw_chromatic_note(context, note_pos,1);
+            gui_draw_chromatic_note(context, origin_point, NOTE_FLAT, keyboard->notes[i]);
         }
         else
         {
-            note_pos.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
+            origin_point.x += GUI_KEYBOARD_CHROMATIC_INTERVAL;
         }
 
     }
@@ -109,15 +111,19 @@ void gui_draw_keyboard(HWND window, unsigned  int x, unsigned int y)
 }
 
 
-void gui_draw_chromatic_note(HDC context, POINT p, int type)
+void gui_draw_chromatic_note(HDC context, POINT p, note_type_t type, note_state_t state)
 {
     POINT current_loc;
 
     POINT pos;
     MoveToEx(context, p.x, p.y, &pos);
-    HPEN pen;
-    HBRUSH brush = CreateSolidBrush(0x000000);
-    pen = CreatePen(PS_SOLID,1,GUI_COLOR_BLACK);
+
+    HPEN pen = CreatePen(PS_SOLID,1,GUI_COLOR_BLACK);
+    HBRUSH brush_black = CreateSolidBrush(GUI_COLOR_BLACK);
+    HBRUSH brush_gray = CreateSolidBrush(0x808080);
+    HBRUSH brush_white = CreateSolidBrush(0xFFFFFF);
+
+
     SelectObject(context,pen);
 
     POINT upper_left;
@@ -125,25 +131,46 @@ void gui_draw_chromatic_note(HDC context, POINT p, int type)
 
     upper_left.x = p.x;
     upper_left.y = p.y;
-    if(type == 0) {
+
+
+
+    if(type == NOTE_CHROMATIC) {
         lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH;
         lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT;
     } else
     {
-        lower_right.x = p.x + GUI_CHROMATIC_NOTE_WIDTH/3+2;
-        lower_right.y = p.y + GUI_CHROMATIC_NOTE_HEIGHT/2 -GUI_SHARP_Y_OFFSET;
-        SelectObject(context, brush);
+        upper_left.x += 14;
+        upper_left.y += 0;
+        lower_right.x = upper_left.x + GUI_CHROMATIC_NOTE_WIDTH/3 +2;
+        lower_right.y = upper_left.y + GUI_CHROMATIC_NOTE_HEIGHT/2 -GUI_SHARP_Y_OFFSET;
+
+
+    }
+    if(type == NOTE_FLAT) {
+        if (state == NOTE_PRESSED ) {
+            SelectObject(context, brush_gray);
+        } else {
+            SelectObject(context, brush_black);
+        }
+    }
+    else
+    {
+        if (state == NOTE_PRESSED ) {
+            SelectObject(context, brush_gray);
+        } else {
+            SelectObject(context, brush_white);
+        }
     }
 
 //    LineTo(context, upper_left.x,upper_left.y);
+//    Rectangle(context, 0,0,100,100);
+
     Rectangle(context,upper_left.x,upper_left.y,lower_right.x, lower_right.y);
-    Rectangle(context, 0,0,100,100);
 
     DeleteObject(pen);
+    DeleteObject(brush_black);
+    DeleteObject(brush_gray);
+    DeleteObject(brush_white);
 
 }
 
-void gui_draw_sharp_note(HDC context, POINT p)
-{
-
-}

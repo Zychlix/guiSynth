@@ -15,6 +15,7 @@ MSG message; //message queue
 void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
 
 
+
 typedef struct midi_device
 {
     LPHMIDIIN dev_handle;
@@ -33,13 +34,15 @@ typedef struct midi_data
 
 
 
-midi_device_t keyboard;
+midi_device_t midi_keyboard_device;
+keyboard_state_t gui_keyboard;
 synthesizer_t synth;
 gui_application_instance_t application;
 
 
+void keyboard_operator(keyboard_state_t * gui_keyboard, midi_data_t * note);
 
-void midi_connect(midi_device_t * device);
+INT midi_connect(midi_device_t * device);
 
 midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2);
 
@@ -49,7 +52,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     gui_register_class_instance(hInstance, nCmdShow,wnd_callback);
 
 
-    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "SimpleSynth v0.1", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
+    application.h_main_window = CreateWindowEx(WS_EX_CLIENTEDGE, application.wnd_class_name, "DenaturiX Sound 2000", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 400, NULL, NULL, hInstance, NULL);
 
     if(!application.h_main_window)
     {
@@ -70,26 +73,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     syn_initialize(&synth);
 
 
+    gui_keyboard.keyboard_size = 24;
+    for (int i = 0; i < 24; ++i) {
+        gui_keyboard.notes[i] = NOTE_RELEASED;
 
+    }
 
     gui_create_window_layout(&application);
 
 
-    keyboard.midi_callback = (void*)midi_callback;
-    keyboard.dev_id = 0;
-
-//    if(res== MMSYSERR_NOERROR)
-//    {
-//        MessageBox(NULL,"Dziala cos","  ",0);
-//    }
-
+    midi_keyboard_device.midi_callback = (void*)midi_callback;
+    midi_keyboard_device.dev_id = 0;
 
     ShowWindow(application.h_main_window, nCmdShow);
     UpdateWindow(application.h_main_window);
 
   //  application.device_count = midiInGetNumDevs();
   //
-    gui_draw_keyboard(application.h_main_window,100,100);
+    gui_keyboard.origin.x = 5;
+    gui_keyboard.origin.y = 270;
+
+    gui_draw_keyboard(application.h_main_window,&gui_keyboard);
+
     while(GetMessage(&message,NULL,0,0))
     {
         TranslateMessage(&message);
@@ -133,9 +138,10 @@ LRESULT CALLBACK wnd_callback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_COMMAND:
             switch (wParam) {
                 case CONNECT_BUTTON_ID:
-                    midi_connect(&keyboard);
-                    gui_indicator_update(&application);
-                    //gui_indicator_update(&application);
+                    if(!midi_connect(&midi_keyboard_device)){
+                        gui_indicator_update(&application);
+                    }
+
                     break;
 
                 default:
@@ -185,11 +191,14 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
             {
                 syn_stop_note(&synth);
             }
+            keyboard_operator(&gui_keyboard, &data);
+            gui_draw_keyboard(application.h_main_window,&gui_keyboard);
             break;
         case MIM_LONGDATA:
             printf("wMsg=MIM_LONGDATA\n");
             break;
         case MIM_ERROR:
+            MessageBox(NULL, "Device disconnected", "MIDI error", 0);
             printf("wMsg=MIM_ERROR\n");
             break;
         case MIM_LONGERROR:
@@ -205,7 +214,7 @@ void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD dwInstance, DWORD 
     return;
 }
 
-void midi_connect(midi_device_t * device)
+INT midi_connect(midi_device_t * device)
 {
     INT device_count = midiInGetNumDevs();
 
@@ -215,8 +224,10 @@ void midi_connect(midi_device_t * device)
     }
     else
     {
-
+        MessageBox(NULL,"No midi devices detected", "Connection error",MB_ICONERROR);
+        return -1;
     }
+    return 0;
 }
 
 midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2)
@@ -230,3 +241,18 @@ midi_data_t midi_data_pack(DWORD instance, DWORD param1, DWORD param2)
 }
 
 
+void keyboard_operator(keyboard_state_t * gui_keyboard, midi_data_t * note)
+{
+    int note_offset = 48;
+    if(note->note>=48 & note->note <= 72)
+    {
+        if(note->status == MIDI_KEY_PRESSED)
+        {
+            gui_keyboard->notes[note->note - note_offset] = NOTE_PRESSED;
+        }
+        if(note->status == MIDI_KEY_DEPRESSED)
+        {
+            gui_keyboard->notes[note->note - note_offset] = NOTE_RELEASED;
+        }
+    }
+}
