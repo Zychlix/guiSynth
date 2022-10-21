@@ -13,14 +13,18 @@ void gui_create_window_layout(gui_application_instance_t *instance)
 
     //instance->controls.volume_slider.handle = CreateWindowEx(0,"SCROLLBAR",NULL,WS_CHILD|WS_VISIBLE|SBS_VERT, GUI_VOLUME_X_POS,20,20,100,instance->h_main_window,(HMENU)VOLUME_SLIDER_ID,instance->hi_main_window,NULL );
     //CreateWindowEx(0, "STATIC", "Volume", WS_CHILD| WS_VISIBLE, GUI_VOLUME_X_POS , 0 , 20, 20, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+
+    //Groupboxes
     CreateWindowEx( 0, "BUTTON", "MIDI", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 20, 0, 100, 80,
                     application.h_main_window, NULL, application.hi_main_window, NULL );
-    CreateWindowEx( 0, "BUTTON", "Envelope", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 20, 110, 130, 150,
+    CreateWindowEx( 0, "BUTTON", "Envelope", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 20, 110, 100, 150,
+                    application.h_main_window, NULL, application.hi_main_window, NULL );
+    CreateWindowEx( 0, "BUTTON", "Timbre", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 145, 110, 130, 150,
                     application.h_main_window, NULL, application.hi_main_window, NULL );
 
     POINT pos;
     pos.x = GUI_VOLUME_X_POS;
-    pos.y = 20;
+    pos.y = GUI_ENVELOPE_Y_POS;
     instance->controls.volume_slider.handle = gui_create_slider(&application,&application.controls.volume_slider.scroll,pos,"Vol");
     pos.x = 40;
     pos.y = GUI_ENVELOPE_Y_POS;
@@ -28,17 +32,25 @@ void gui_create_window_layout(gui_application_instance_t *instance)
     pos.x = 80;
     pos.y = GUI_ENVELOPE_Y_POS;
     instance->controls.decay_slider.handle = gui_create_slider(&application,&application.controls.decay_slider.scroll,pos,"Dec");
+    pos.x = 160;
+    pos.y = GUI_ENVELOPE_Y_POS;
+    instance->controls.sine_slider.handle = gui_create_slider(&application,&application.controls.sine_slider.scroll,pos,"Sine");
+    pos.x = 200;
+    pos.y = GUI_ENVELOPE_Y_POS;
+    instance->controls.saw_slider.handle = gui_create_slider(&application,&application.controls.saw_slider.scroll,pos,"Saw");
+    pos.x = 240;
+    pos.y = GUI_ENVELOPE_Y_POS;
+    instance->controls.square_slider.handle = gui_create_slider(&application,&application.controls.square_slider.scroll,pos,"Sqr");
+    pos.x = 280;
+    pos.y = GUI_ENVELOPE_Y_POS;
+    instance->controls.detune_slider.handle = gui_create_slider(&application,&application.controls.detune_slider.scroll,pos,"Tune");
 
 
+    instance->controls.square_slider.scroll.nPos = 1000;
+    SetScrollInfo(instance->controls.square_slider.handle,SB_CTL, &application.controls.square_slider.scroll,TRUE);
 
-//
-//    application.controls.volume_slider.scroll.cbSize = sizeof application.controls.volume_slider.scroll;
-//    application.controls.volume_slider.scroll.fMask = SIF_ALL;
-//    application.controls.volume_slider.scroll.nMin = 0;
-//    application.controls.volume_slider.scroll.nMax = 1000;
-//    application.controls.volume_slider.scroll.nPage = 0;
-//    application.controls.volume_slider.scroll.nPos = 0;
-  //  SetScrollInfo (application.controls.volume_slider.handle, SB_CTL, &application.controls.volume_slider.scroll, TRUE);
+    instance->controls.saw_slider.scroll.nPos = 1000;
+    SetScrollInfo(instance->controls.saw_slider.handle,SB_CTL, &application.controls.saw_slider.scroll,TRUE);
 
 
 
@@ -74,11 +86,13 @@ INT gui_register_class_instance(HINSTANCE hinstance, INT cmdshow, WNDPROC * call
     wnd_class_instance.cbWndExtra = 0;
     wnd_class_instance.style = 0;
     wnd_class_instance.lpfnWndProc = callback;
-    wnd_class_instance.hIcon = LoadIcon(NULL,IDI_APPLICATION);
+    wnd_class_instance.hIcon = LoadImage(NULL,"icaon.bmp",IMAGE_BITMAP,0,0,LR_LOADFROMFILE);//;LoadIcon(NULL,IDI_APPLICATION);
     wnd_class_instance.hCursor = LoadCursor(NULL,IDC_ARROW);
     wnd_class_instance.hbrBackground = (HBRUSH)(COLOR_WINDOW | 1);
     wnd_class_instance.lpszMenuName = NULL;
     wnd_class_instance.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
+
+   // DrawIconEx( wnd_class_instance.hInstance, 100, 200,wnd_class_instance.hIcon, 72, 78, 0, NULL, DI_NORMAL);
 
     if(!RegisterClassEx(&wnd_class_instance))
     {
@@ -206,7 +220,7 @@ HWND gui_create_slider(gui_application_instance_t *instance,SCROLLINFO* bar, POI
     bar->nPos = 0;
     SetScrollInfo (pot, SB_CTL, bar, TRUE);
 
-    CreateWindowEx(0, "STATIC", name, WS_CHILD| WS_VISIBLE, position.x , position.y-15 , 50, 20, instance->h_main_window, NULL, instance->hi_main_window, NULL);
+    CreateWindowEx(0, "STATIC", name, WS_CHILD| WS_VISIBLE, position.x , position.y-15 , 30, 20, instance->h_main_window, NULL, instance->hi_main_window, NULL);
 
     return pot;
 }

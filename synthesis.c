@@ -88,7 +88,12 @@ void syn_voice_generate(synthesizer_t * synthesizer)
     float master = synthesizer->voice_main.master_volume;
     float phase = synthesizer->voice_main.phase;
 //    signal = master * volume * sin(frequency*time_stage*2*M_PI/SAMPLE_RATE);
-    signal = master * volume * (sin((frequency*time_stage*2*M_PI+phase)/SAMPLE_RATE) );
+    float sine = sin((frequency*time_stage*2*M_PI+phase)/SAMPLE_RATE);
+    float saw =  asin(sin((frequency*time_stage*2*M_PI*synthesizer->voice_main.detune-0.5+phase)/SAMPLE_RATE));
+    float square;
+    square = (sine<0.f) ? 1.f : 0.f;
+
+    signal = master * volume * (synthesizer->voice_main.sine_component*sine+synthesizer->voice_main.saw_component*saw +synthesizer->voice_main.square_component*square)/3;
     synthesizer->data.current_phase.left = (1- synthesizer->data.pan)/2 * signal;
     synthesizer->data.current_phase.right = (1+ synthesizer->data.pan)/2 * signal;
 }
@@ -103,7 +108,7 @@ void syn_envelope_processor(synthesizer_t * synthesizer)
     }
     else
     {
-        synthesizer->voice_main.volume*=(1-synthesizer->voice_main.release/SAMPLE_RATE);
+        synthesizer->voice_main.volume*=(1-synthesizer->voice_main.decay/SAMPLE_RATE);
 
     }
     synthesizer->voice_main.volume= f_sym_constraint(synthesizer->voice_main.volume,1);

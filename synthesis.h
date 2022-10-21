@@ -36,10 +36,15 @@ typedef struct voice
     int note_on;
     int stage;
 
+    float sine_component;
+    float saw_component;
+    float square_component;
+
     float attack;
     float decay;
-    float sustain;
-    float release;
+
+    float detune;
+
     float frequency;
     float phase;
 

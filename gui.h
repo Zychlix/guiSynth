@@ -44,6 +44,12 @@ typedef struct synth_controls
     knob_t attack_slider;
     knob_t decay_slider;
 
+    knob_t sine_slider;
+    knob_t saw_slider;
+    knob_t square_slider;
+
+    knob_t detune_slider;
+
 }synth_controls_t;
 
 typedef struct indicator_state_struct

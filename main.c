@@ -59,8 +59,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     for (int i = 0; i < 24; ++i) {
         gui_keyboard.notes[i] = NOTE_RELEASED;
-
     }
+
     gui_keyboard.origin.x = 0;
     gui_keyboard.origin.y = 275;
 
@@ -77,10 +77,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     synth.voice_main.master_volume= 1.f;
     synth.voice_main.volume = 1.f;
 
+    synth.voice_main.sine_component = 1.f;
+
     synth.voice_main.attack = 100;
     synth.voice_main.decay = 100;
-    synth.voice_main.sustain = 8;
-    synth.voice_main.release = 10;
     synth.voice_main.phase = 0;
 
     syn_initialize(&synth);
@@ -252,6 +252,7 @@ void keyboard_operator(keyboard_state_t * gui_kbd, midi_data_t * note)
     }
 }
 
+
 void slider_dispatcher(gui_application_instance_t * application, synthesizer_t * synth, HWND param)
 {
     float val ;
@@ -260,17 +261,43 @@ void slider_dispatcher(gui_application_instance_t * application, synthesizer_t *
     {
         val = gui_get_slider_value(&application->controls.volume_slider,(HWND)param);
         synth->voice_main.master_volume= (exp((val))-1)/1.71;
-
     }
+
     if(param == application->controls.attack_slider.handle)
     {
         val = gui_get_slider_value(&application->controls.attack_slider,(HWND)param);
+        synth->voice_main.attack = val *100;
     }
+
     if(param == application->controls.decay_slider.handle)
     {
         val = gui_get_slider_value(&application->controls.decay_slider,(HWND)param);
+        synth->voice_main.decay = val*100;
     }
 
+    if(param == application->controls.sine_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.sine_slider,(HWND)param);
+        synth->voice_main.sine_component= val;
+    }
+
+    if(param == application->controls.saw_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.saw_slider,(HWND)param);
+        synth->voice_main.saw_component= val;
+    }
+
+    if(param == application->controls.square_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.square_slider,(HWND)param);
+        synth->voice_main.square_component = val;
+    }
+
+    if(param == application->controls.detune_slider.handle)
+    {
+        val = gui_get_slider_value(&application->controls.detune_slider,(HWND)param);
+        synth->voice_main.detune = val;
+    }
 
 
 
